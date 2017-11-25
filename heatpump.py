@@ -26,8 +26,10 @@ def temp_get(volts,supply_voltage=5):
 
 while(True):
     vv_retur=temp_get(DAQC.getADC(0,0),DAQC.getADC(0,8))
+    vv_top=temp_get(DAQC.getADC(0,2),DAQC.getADC(0,8))
     hetgas=temp_get(DAQC.getADC(0,1),DAQC.getADC(0,8))
     print("VV retur:",vv_retur)
+    print("VV top:",vv_top)
     print("Hetgas:",hetgas)
     print("Kompressor:",compressor())
     if vv_retur < 35:
