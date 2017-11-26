@@ -1,7 +1,7 @@
 import piplates.DAQCplate as DAQC
 import time
 from decimal import Decimal
-DAQC.setDOUTbit(0,0) 
+#DAQC.setDOUTbit(0,0) 
 #thermistor reading function
 def compressor(state=None):
     if state==None:
@@ -12,7 +12,7 @@ def compressor(state=None):
         DAQC.clrDOUTbit(0,0) 
 
 def temp_get(volts,supply_voltage=5):
-    divider_resistor=10000
+    divider_resistor=1500
     ohms = Decimal(divider_resistor*supply_voltage/volts-divider_resistor) #calculate the ohms of the thermisttor
     #IVT oem NTC
     a = Decimal(1.298022762e-3)
@@ -32,12 +32,12 @@ while(True):
     print("VV top:",vv_top)
     print("Hetgas:",hetgas)
     print("Kompressor:",compressor())
-    if vv_retur < 35:
+    if vv_top < 35:
         compressor(True)
-        print("Returtemp under 35. Startar kompressor")
-    if vv_retur > 45:
+        print("Toptemp under 35. Startar kompressor")
+    if vv_top > 45:
         compressor(False)
-        print("Returtemp över 45. Stänger av kompressor")
+        print("Toptemp över 45. Stänger av kompressor")
 #    import pdb;pdb.set_trace()
     time.sleep(1)
 
