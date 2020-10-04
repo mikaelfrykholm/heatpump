@@ -1,6 +1,10 @@
 import piplates.DAQCplate as DAQC
 import time
 from decimal import Decimal
+import os
+import paho.mqtt.client as mqtt #import the client1
+from prometheus_client import start_http_server, Summary, Gauge
+
 #DAQC.setDOUTbit(0,0) 
 #thermistor reading function
 def compressor(state=None):
@@ -24,6 +28,16 @@ def temp_get(volts,supply_voltage=5):
     tempc = temp - Decimal(273.15) #K to C
     return tempc
 
+def log(fp, data):
+    print(*data,sep=',', file=fp)
+    fp.flush()
+
+fp = open("/var/tmp/heatpump.csv","w+")
+start_http_server(8000)
+running_g = Gauge('heatpump_running', 'Is the compressor running?')
+top_g = Gauge('heatpump_toptemp', 'Temperature at top of tank.')
+return_g = Gauge('heatpump_returntemp', 'Temperature at inlet sensor.')
+gas_g = Gauge('heatpump_hottemp', 'Temperature at Hot Gas side sensor.')
 while(True):
     vv_retur=temp_get(DAQC.getADC(0,0),DAQC.getADC(0,8))
     vv_top=temp_get(DAQC.getADC(0,2),DAQC.getADC(0,8))
@@ -32,12 +46,24 @@ while(True):
     print("VV top:",vv_top)
     print("Hetgas:",hetgas)
     print("Kompressor:",compressor())
-    if vv_top < 35:
+    log(fp, [vv_retur,vv_top,hetgas,str(compressor()[0])])
+    broker_address="monitor.tranquillity.se" 
+    client = mqtt.Client("P1") #create new instance
+    client.connect(broker_address) #connect to broker
+    client.publish("heatpump/running",str(compressor()[0]), retain=True)#publish
+    client.publish("heatpump/toptemp",str(vv_top), retain=True)#publish
+    client.publish("heatpump/returntemp",str(vv_retur), retain=True)#publish
+    client.publish("heatpump/hottemp",str(hetgas), retain=True)#publish
+    running_g.set(compressor()[0])
+    top_g.set(vv_top)
+    return_g.set(vv_retur)
+    gas_g.set(hetgas)
+    if vv_top < 47:
         compressor(True)
-        print("Toptemp under 35. Startar kompressor")
-    if vv_top > 45:
+        print("Toptemp under 47. Startar kompressor")
+    if vv_top > 51:
         compressor(False)
-        print("Toptemp över 45. Stänger av kompressor")
+        print("Toptemp över 51. Stänger av kompressor")
 #    import pdb;pdb.set_trace()
     time.sleep(1)
 
